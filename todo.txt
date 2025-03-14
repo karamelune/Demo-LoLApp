@@ -1,0 +1,5 @@
+Fix some champions skins not showing (ex: Fiddlesticks)
+Make sure that i use champion ids as follows : championId=string, championKey=number, championName=string
+Make the site fully responsive
+Securise APIs
+Refactor pretty much everything to be more efficient, robust and reusable

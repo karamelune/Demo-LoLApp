@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+    :root {
+        --radius: 0.5rem;
+    }
+}
+
+/* Masquer les barres de défilement tout en permettant le défilement */
+.scrollbar-hidden::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+}
+
+.scrollbar-hidden {
+    scrollbar-width: none; /* Firefox */
+}
