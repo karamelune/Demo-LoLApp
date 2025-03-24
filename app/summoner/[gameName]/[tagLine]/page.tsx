@@ -6,88 +6,20 @@ import { User } from '@/types/user';
 import { Mastery } from '@/types/mastery';
 import { updateUserClient } from '@/scripts/updateUserClient';
 import { fetchUserByGameName } from '@/services/userService';
-import { Match } from '@/types/match';
-import championKeyToId from '@/data/championKeyToId.json';
-import { Separator } from '@/components/ui/separator';
-import { MatchInfoSkeleton } from '@/components/MatchInfo';
 import ProfileInfos, { ProfileInfosSkeleton } from '@/components/ProfileInfos';
 import { ProfileMasteriesSkeleton } from '@/components/ProfileMasteries';
+import { MatchInfoSkeleton } from '@/components/Matches';
+import { Separator } from '@/components/ui/separator';
 
 // Chargement différé des composants moins critiques
 const ProfileMasteries = React.lazy(
     () => import('@/components/ProfileMasteries')
 );
-const MatchInfo = React.lazy(() => import('@/components/MatchInfo'));
-
-type ChampionStats = {
-    championKey: string;
-    played: number;
-    wins: number;
-    losses: number;
-    id: string;
-    winRate: number;
-};
-
-function getChampionStats(user: User, matches: Match[]): ChampionStats[] {
-    if (!user || !Array.isArray(matches) || matches.length === 0) {
-        return [];
-    }
-
-    const last50Matches = matches
-        .filter(
-            (match) =>
-                match.info.participants.some(
-                    (participant) => participant.puuid === user.puuid
-                ) && match.info.queueId === 420 // Solo/Duo queue
-        )
-        .sort((a, b) => b.info.gameCreation - a.info.gameCreation)
-        .slice(0, 50);
-
-    const championStats: Record<string, ChampionStats> = {};
-
-    last50Matches.forEach((match) => {
-        const participant = match.info.participants.find(
-            (p) => p.puuid === user.puuid
-        );
-        if (!participant) return;
-
-        const championKey = participant.championId.toString();
-        const champion = championKeyToId.find(
-            (champ) => champ.key === championKey
-        );
-        const championId = champion ? champion.id : championKey;
-
-        if (!championStats[championKey]) {
-            championStats[championKey] = {
-                championKey: championKey,
-                played: 0,
-                wins: 0,
-                losses: 0,
-                id: championId,
-                winRate: 0,
-            };
-        }
-
-        championStats[championKey].played += 1;
-        if (participant.win) {
-            championStats[championKey].wins += 1;
-        } else {
-            championStats[championKey].losses += 1;
-        }
-
-        championStats[championKey].winRate =
-            (championStats[championKey].wins /
-                championStats[championKey].played) *
-            100;
-    });
-
-    return Object.values(championStats).sort((a, b) => b.winRate - a.winRate);
-}
+const Matches = React.lazy(() => import('@/components/Matches'));
 
 export default function SummonerPage() {
     const { gameName, tagLine } = useParams();
     const [user, setUser] = useState<User | null>(null);
-    const [isMatchesLoading, setIsMatchesLoading] = useState(false);
 
     const fetchUser = useCallback(async () => {
         if (typeof gameName === 'string' && typeof tagLine === 'string') {
@@ -136,48 +68,6 @@ export default function SummonerPage() {
     useEffect(() => {
         fetchUser();
     }, [fetchUser]);
-
-    const [matches, setMatches] = useState<Match[]>([]);
-
-    // Fetch matches when user changes
-    useEffect(() => {
-        // Fetch the matches for the user
-        async function fetchMatches() {
-            if (!user) return;
-            try {
-                setIsMatchesLoading(true);
-                const response = await fetch(
-                    `/api/match/get/puuid/${user.puuid}`
-                );
-                if (!response.ok) {
-                    throw new Error('Failed to fetch matches');
-                }
-                const data = await response.json();
-                const sortedMatches = data.sort(
-                    (a: Match, b: Match) =>
-                        b.info.gameCreation - a.info.gameCreation
-                );
-                // Keep only normal, ranked and aram matches
-                const filteredMatches = sortedMatches.filter((match: Match) =>
-                    [400, 420, 430, 440, 450, 460, 470, 900].includes(
-                        match.info.queueId
-                    )
-                );
-                setMatches(filteredMatches);
-            } catch (error) {
-                console.error('Error fetching matches:', error);
-            } finally {
-                setIsMatchesLoading(false);
-            }
-        }
-
-        if (user) {
-            fetchMatches();
-        }
-    }, [user]);
-
-    // State for the number of matches to display
-    const [matchCount, setMatchCount] = useState(10);
 
     // Base classes for the ranked tiers
     const tierBaseClasses = 'bg-clip-text text-transparent bg-gradient-to-br';
@@ -235,12 +125,6 @@ export default function SummonerPage() {
         return b.championLevel - a.championLevel;
     });
 
-    // Slice the filtered matches to the match count
-    const slicedMatches = matches?.slice(0, matchCount);
-
-    // Get the champion stats for the user
-    const championStats = user ? getChampionStats(user, matches) : [];
-
     // Update the user's game name and tag line
     async function handleUpdate() {
         const updatedUser = user
@@ -254,9 +138,6 @@ export default function SummonerPage() {
 
     // Check if the champion masteries are loading
     const isChampionMasteriesLoading = !championMasteries;
-
-    // Check if the performances are loading
-    const isRecentPerformanceLoading = matches.length === 0;
 
     return (
         <section className="flex flex-col gap-2 justify-center items-center m-auto max-w-[75vw]">
@@ -300,62 +181,25 @@ export default function SummonerPage() {
                 )
             )}
 
-            {/* Recent performance */}
-            {/* !! Currently not perfectly implemented !! */}
-            {/* {isRecentPerformanceLoading ? (
-                <ProfileRecentPerformanceSkeleton />
-            ) : (
-                championStats.length > 0 && (
-                    <RecentPerformance
-                        isRecentPerformanceLoading={isRecentPerformanceLoading}
-                        championStats={championStats}
-                        user={user}
-                    />
-                )
-            )} */}
+            {/* Matches */}
+            {user && (
+                <Suspense
+                    fallback={
+                        <div className="flex flex-col gap-2 justify-center items-center p-2 rounded-md bg-gradient-to-r from-lolblue6 to-lolblue7 shadow-md px-4 py-2 w-full">
+                            <h2 className="font-semibold text-gray-200">
+                                Recent Matches
+                            </h2>
+                            <Separator className="bg-lolgray1/20 w-24 -mt-1 mb-2" />
 
-            <div className="flex flex-col gap-2 justify-center items-center p-2 rounded-md bg-gradient-to-r from-lolblue6 to-lolblue7 shadow-md px-4 py-2 w-full">
-                <h2 className="font-semibold text-gray-200">Recent Matches</h2>
-                <Separator className="bg-lolgray1/20 w-24 -mt-1 mb-2" />
-
-                {user &&
-                !isMatchesLoading &&
-                matches.length > 0 &&
-                slicedMatches ? (
-                    <div className="grid grid-cols-1 gap-3 w-full">
-                        {slicedMatches.map((match) => (
-                            <Suspense
-                                key={match.metadata.matchId}
-                                fallback={<MatchInfoSkeleton />}>
-                                <MatchInfo
-                                    matchData={match}
-                                    userPuuid={user.puuid}
-                                />
-                            </Suspense>
-                        ))}
-                    </div>
-                ) : user && !isMatchesLoading && matches.length === 0 ? (
-                    <div className="text-gray-200 text-center py-4">
-                        No matches found for this summoner.
-                    </div>
-                ) : (
-                    <>
-                        <MatchInfoSkeleton />
-                        <MatchInfoSkeleton />
-                        <MatchInfoSkeleton />
-                        <MatchInfoSkeleton />
-                        <MatchInfoSkeleton />
-                    </>
-                )}
-            </div>
-
-            {/* Load more matches - only show if there are more matches to load */}
-            {matches.length > 0 && matchCount < matches.length && (
-                <button
-                    className="text-gray-200 bg-gradient-to-r from-lolblue6 to-lolblue7 hover:bg-lolblue5/80 rounded-md py-1 px-2 mt-2 shadow-md"
-                    onClick={() => setMatchCount(matchCount + 10)}>
-                    Load more matches
-                </button>
+                            <MatchInfoSkeleton />
+                            <MatchInfoSkeleton />
+                            <MatchInfoSkeleton />
+                            <MatchInfoSkeleton />
+                            <MatchInfoSkeleton />
+                        </div>
+                    }>
+                    <Matches user={user} />
+                </Suspense>
             )}
         </section>
     );

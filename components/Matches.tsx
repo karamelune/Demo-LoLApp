@@ -9,9 +9,11 @@ import {
     checkPlayerGoodPerformanceBadges,
 } from '../scripts/checkPlayerPerformanceBadges';
 import championKeyToId from '@/data/championKeyToId.json';
-import { useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import MatchStats from './MatchStats';
 import { Skeleton } from './ui/skeleton';
+import { User } from '@/types/user';
+import { Separator } from './ui/separator';
 
 interface MatchInfoProps {
     matchData: Match;
@@ -21,7 +23,91 @@ interface MatchInfoProps {
 // Get DDragon base URL from environment variables
 const ddragonBaseUrl = process.env.DDRAGON_BASE_URL;
 
-export default function MatchInfo({ matchData, userPuuid }: MatchInfoProps) {
+export default function Matches({ user }: { user: User }) {
+    const [isMatchesLoading, setIsMatchesLoading] = useState(false);
+    const [matches, setMatches] = useState<Match[]>([]);
+    const [matchCount, setMatchCount] = useState(10);
+
+    useEffect(() => {
+        // Fetch the matches for the user
+        async function fetchMatches() {
+            if (!user) return;
+            try {
+                setIsMatchesLoading(true);
+                const response = await fetch(
+                    `/api/match/get/puuid/${user.puuid}`
+                );
+                if (!response.ok) {
+                    throw new Error('Failed to fetch matches');
+                }
+                const data = await response.json();
+                const sortedMatches = data.sort(
+                    (a: Match, b: Match) =>
+                        b.info.gameCreation - a.info.gameCreation
+                );
+                // Keep only normal, ranked and aram matches
+                const filteredMatches = sortedMatches.filter((match: Match) =>
+                    [400, 420, 430, 440, 450, 460, 470, 900].includes(
+                        match.info.queueId
+                    )
+                );
+                setMatches(filteredMatches);
+            } catch (error) {
+                console.error('Error fetching matches:', error);
+            } finally {
+                setIsMatchesLoading(false);
+            }
+        }
+
+        if (user) {
+            fetchMatches();
+        }
+    }, [user]);
+
+    // Slice the filtered matches to the match count
+    const slicedMatches = matches?.slice(0, matchCount);
+    return (
+        <>
+            <div className="flex flex-col gap-2 justify-center items-center p-2 rounded-md bg-gradient-to-r from-lolblue6 to-lolblue7 shadow-md px-4 py-2 w-full">
+                <h2 className="font-semibold text-gray-200">Recent Matches</h2>
+                <Separator className="bg-lolgray1/20 w-24 -mt-1 mb-2" />
+
+                {user &&
+                !isMatchesLoading &&
+                matches.length > 0 &&
+                slicedMatches ? (
+                    <div className="grid grid-cols-1 gap-3 w-full">
+                        {slicedMatches.map((match) => (
+                            <Suspense
+                                key={match.metadata.matchId}
+                                fallback={<MatchInfoSkeleton />}>
+                                <MatchInfo
+                                    matchData={match}
+                                    userPuuid={user.puuid}
+                                />
+                            </Suspense>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-gray-200 text-center py-4">
+                        No matches found for this summoner.
+                    </div>
+                )}
+            </div>
+
+            {/* Load more matches - only show if there are more matches to load */}
+            {matches.length > 0 && matchCount < matches.length && (
+                <button
+                    className="text-gray-200 bg-gradient-to-r from-lolblue6 to-lolblue7 hover:bg-lolblue5/80 rounded-md py-1 px-2 mt-2 shadow-md"
+                    onClick={() => setMatchCount(matchCount + 10)}>
+                    Load more matches
+                </button>
+            )}
+        </>
+    );
+}
+
+function MatchInfo({ matchData, userPuuid }: MatchInfoProps) {
     const [isMatchStatsOpen, setIsMatchStatsOpen] = useState(false);
 
     // Skip rendering if queueId is 1700 (Arena)
