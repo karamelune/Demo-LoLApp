@@ -13,6 +13,19 @@ module.exports = {
         DDRAGON_BASE_URL: process.env.DDRAGON_BASE_URL,
         MONGODB_URI: process.env.MONGODB_URI,
     },
+    async headers() {
+        return [
+            {
+                source: '/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 's-maxage=86400, stale-while-revalidate=59',
+                    },
+                ],
+            },
+        ];
+    },
 };
 
 export default nextConfig;

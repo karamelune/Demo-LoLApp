@@ -39,4 +39,7 @@ const UserSchema = new Schema<User>({
     masteries: { type: [MasterySchema], default: [] },
 });
 
+UserSchema.index({ gameName: 1, tagLine: 1 });
+UserSchema.index({ puuid: 1 });
+
 export const UserModel = models.User || model<User>('User', UserSchema);

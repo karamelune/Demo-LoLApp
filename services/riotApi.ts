@@ -40,7 +40,7 @@ export async function getMatchById(id: string) {
 
 export async function getUserMatchesByPuuid(puuid: string) {
     return handleApiCall(
-        lolApi.MatchV5.list(puuid, REGION_EUROPE, { count: 40 })
+        lolApi.MatchV5.list(puuid, REGION_EUROPE, { count: 10 })
     );
 }
 

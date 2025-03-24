@@ -79,13 +79,18 @@ export async function updateUserClient(
             );
         }
 
+        // First get the summoner info because you need summoner.id
         const summoner = await getSummoner(accountPuuid);
         if (!summoner) {
             throw new Error('Summoner not found');
         }
 
-        const leagues = await getLeagues(summoner.id);
-        const matches = await getMatchList(accountPuuid);
+        // Now run these three operations in parallel
+        const [leagues, matches, masteries] = await Promise.all([
+            getLeagues(summoner.id),
+            getMatchList(accountPuuid),
+            getChampionMasteries(accountPuuid),
+        ]);
 
         const matchesInDBIds = await Promise.all(
             matches.map(async (matchId: string) => {
@@ -106,7 +111,7 @@ export async function updateUserClient(
         );
 
         const matchDetails = await Promise.all(
-            unfetchedMatches.slice(0, 20).map(async (matchId: string) => {
+            unfetchedMatches.slice(0, 5).map(async (matchId: string) => {
                 try {
                     return await getMatch(matchId);
                 } catch (error) {
@@ -118,8 +123,6 @@ export async function updateUserClient(
                 }
             })
         );
-
-        const masteries = await getChampionMasteries(accountPuuid);
 
         // Create a champion map from the champions array
         const championMap: { [key: string]: Champion } = Object.values(
