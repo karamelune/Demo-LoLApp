@@ -1,7 +1,7 @@
 'use client';
 
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
 import { User } from '@/types/user';
 import { Mastery } from '@/types/mastery';
 import { updateUserClient } from '@/scripts/updateUserClient';
@@ -9,11 +9,15 @@ import { fetchUserByGameName } from '@/services/userService';
 import { Match } from '@/types/match';
 import championKeyToId from '@/data/championKeyToId.json';
 import { Separator } from '@/components/ui/separator';
-import MatchInfo, { MatchInfoSkeleton } from '@/components/MatchInfo';
+import { MatchInfoSkeleton } from '@/components/MatchInfo';
 import ProfileInfos, { ProfileInfosSkeleton } from '@/components/ProfileInfos';
-import ProfileMasteries, {
-    ProfileMasteriesSkeleton,
-} from '@/components/ProfileMasteries';
+import { ProfileMasteriesSkeleton } from '@/components/ProfileMasteries';
+
+// Chargement différé des composants moins critiques
+const ProfileMasteries = React.lazy(
+    () => import('@/components/ProfileMasteries')
+);
+const MatchInfo = React.lazy(() => import('@/components/MatchInfo'));
 
 type ChampionStats = {
     championKey: string;
@@ -288,7 +292,11 @@ export default function SummonerPage() {
                 <ProfileMasteriesSkeleton />
             ) : (
                 championMasteries.length > 0 && (
-                    <ProfileMasteries championMasteries={championMasteries} />
+                    <Suspense fallback={<ProfileMasteriesSkeleton />}>
+                        <ProfileMasteries
+                            championMasteries={championMasteries}
+                        />
+                    </Suspense>
                 )
             )}
 
@@ -316,11 +324,14 @@ export default function SummonerPage() {
                 slicedMatches ? (
                     <div className="grid grid-cols-1 gap-3 w-full">
                         {slicedMatches.map((match) => (
-                            <MatchInfo
+                            <Suspense
                                 key={match.metadata.matchId}
-                                matchData={match}
-                                userPuuid={user.puuid}
-                            />
+                                fallback={<MatchInfoSkeleton />}>
+                                <MatchInfo
+                                    matchData={match}
+                                    userPuuid={user.puuid}
+                                />
+                            </Suspense>
                         ))}
                     </div>
                 ) : user && !isMatchesLoading && matches.length === 0 ? (

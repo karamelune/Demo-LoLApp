@@ -25,18 +25,27 @@ const MasterySchema = new Schema<Mastery>({
     championPoints: Number,
 });
 
-const UserSchema = new Schema<User>({
-    accountId: { type: String, required: true },
-    gameName: { type: String, required: true },
-    id: { type: String, required: true },
-    profileIconId: { type: Number, required: true },
-    puuid: { type: String, required: true, unique: true },
-    revisionDate: { type: Number, required: true },
-    summonerLevel: { type: Number, required: true },
-    tagLine: { type: String, required: true },
-    leagues: { type: [LeagueSchema], default: [] },
-    matches: { type: [String], default: [] },
-    masteries: { type: [MasterySchema], default: [] },
-});
+const UserSchema = new Schema<User>(
+    {
+        accountId: { type: String, required: true },
+        gameName: { type: String, required: true },
+        id: { type: String, required: true },
+        profileIconId: { type: Number, required: true },
+        puuid: { type: String, required: true, unique: true },
+        revisionDate: { type: Number, required: true },
+        summonerLevel: { type: Number, required: true },
+        tagLine: { type: String, required: true },
+        leagues: { type: [LeagueSchema], default: [] },
+        matches: { type: [String], default: [], select: false },
+        masteries: { type: [MasterySchema], default: [] },
+    },
+    {
+        timestamps: true,
+        autoIndex: true,
+    }
+);
+
+UserSchema.index({ gameName: 1, tagLine: 1 });
+UserSchema.index({ id: 1 });
 
 export const UserModel = models.User || model<User>('User', UserSchema);
