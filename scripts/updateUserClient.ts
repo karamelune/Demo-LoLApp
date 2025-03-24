@@ -79,13 +79,11 @@ export async function updateUserClient(
             );
         }
 
-        // First get the summoner info because you need summoner.id
         const summoner = await getSummoner(accountPuuid);
         if (!summoner) {
             throw new Error('Summoner not found');
         }
 
-        // Now run these three operations in parallel
         const [leagues, matches, masteries] = await Promise.all([
             getLeagues(summoner.id),
             getMatchList(accountPuuid),
