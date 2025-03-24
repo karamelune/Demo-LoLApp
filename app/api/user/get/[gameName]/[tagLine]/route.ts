@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/dbConnect';
 import { UserModel } from '@/models/UserModel';
 
+type Params = {
+    gameName: string;
+    tagLine: string;
+};
+
 export async function GET(
     req: NextRequest,
-    { params }: { params: { gameName: string; tagLine: string } }
+    { params }: { params: Promise<Params> }
 ) {
     const { gameName, tagLine } = await params;
 

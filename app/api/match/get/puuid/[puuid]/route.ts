@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/dbConnect';
 import { MatchModel } from '@/models/MatchModel';
 
+type Params = { puuid: string };
+
 export async function GET(
     req: NextRequest,
-    { params }: { params: { puuid: string } }
+    { params }: { params: Promise<Params> }
 ) {
     const { puuid } = await params;
 

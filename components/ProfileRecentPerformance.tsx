@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
+import { Mastery } from '@/types/mastery';
 
 const ddragonBaseUrl = process.env.DDRAGON_BASE_URL;
 
@@ -46,10 +47,10 @@ export default function RecentPerformance({
                             Recent Performance
                         </h2>
                         <Separator className="bg-lolgray1/20 w-24 -mt-1 mb-2" />
-                        <div className="flex gap-8 justify-center items-center w-full">
+                        <div className="flex gap-8 justify-center items-center w-full"> 
                             {championStats.slice(0, 4).map((stats) => {
                                 const mastery = user?.masteries.find(
-                                    (m) => m.key === parseInt(stats.championKey)
+                                    (m: Mastery) => m.key === parseInt(stats.championKey)
                                 );
 
                                 const winRateClass =

@@ -1,4 +1,5 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getAccountByRiotId } from '@/services/riotApi';
 
 type Params = {
@@ -8,7 +9,7 @@ type Params = {
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: Params }
+    { params }: { params: Promise<Params> }
 ) {
     const { gameName, tagLine } = await params;
 
