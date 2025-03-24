@@ -43,12 +43,19 @@ export async function GET(
         const user = await Promise.race([
             UserModel.findOne(
                 { gameName: decodedGameName, tagLine: decodedTagLine },
-                { matches: 0, masteries: { $slice: 10 } }
+                {
+                    gameName: 1,
+                    tagLine: 1,
+                    summonerLevel: 1,
+                    leagues: 1,
+                    masteries: { $slice: 10 },
+                    _id: 0,
+                }
             )
                 .lean()
                 .exec(),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Database timeout')), 5000)
+                setTimeout(() => reject(new Error('Database timeout')), 9000)
             ),
         ]);
 

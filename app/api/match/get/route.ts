@@ -8,7 +8,7 @@ export async function GET() {
         await dbConnect();
 
         // Fetch all matches from the database
-        const matches = await MatchModel.find({}).lean();
+        const matches = await MatchModel.find({}).limit(10).lean();
 
         // Return the matches
         return NextResponse.json(matches, { status: 200 });
